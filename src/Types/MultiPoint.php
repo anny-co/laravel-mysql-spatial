@@ -42,7 +42,7 @@ class MultiPoint extends PointCollection
     public function __toString()
     {
         return implode(',', array_map(function (Point $point) {
-            return $point->toPair();
+            return sprintf('(%s)', $point->toPair());
         }, $this->items));
     }
 
