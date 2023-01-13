@@ -5,6 +5,7 @@ namespace Grimzy\LaravelMysqlSpatial\Eloquent;
 use Grimzy\LaravelMysqlSpatial\Exceptions\SpatialFieldsNotDefinedException;
 use Grimzy\LaravelMysqlSpatial\Exceptions\UnknownSpatialFunctionException;
 use Grimzy\LaravelMysqlSpatial\Exceptions\UnknownSpatialRelationFunction;
+use Grimzy\LaravelMysqlSpatial\ExpressionGenerator;
 use Grimzy\LaravelMysqlSpatial\Types\Geometry;
 use Grimzy\LaravelMysqlSpatial\Types\GeometryInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -86,7 +87,7 @@ trait SpatialTrait
         foreach ($this->attributes as $key => $value) {
             if ($value instanceof GeometryInterface) {
                 $this->geometries[$key] = $value; //Preserve the geometry objects prior to the insert
-                $this->attributes[$key] = SpatialExpression::makeFromConnection($this->getConnection(), $value);
+                $this->attributes[$key] = new SpatialExpression($value, $this->getConnection());
             }
         }
 
@@ -134,7 +135,8 @@ trait SpatialTrait
     {
         $this->isColumnAllowed($geometryColumn);
 
-        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) <= ?", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->whereRaw("st_distance(`$geometryColumn`, {$expression}) <= ?", [
             $geometry->toWkt(),
             $geometry->getSrid(),
             $distance,
@@ -149,7 +151,8 @@ trait SpatialTrait
 
         $query = $this->scopeDistance($query, $geometryColumn, $geometry, $distance);
 
-        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) != 0", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->whereRaw("st_distance(`$geometryColumn`, {$expression}) != 0", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -167,7 +170,8 @@ trait SpatialTrait
             $query->select('*');
         }
 
-        $query->selectRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) as distance", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->selectRaw("st_distance(`$geometryColumn`, {$expression}) as distance", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -177,7 +181,8 @@ trait SpatialTrait
     {
         $this->isColumnAllowed($geometryColumn);
 
-        $query->whereRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) <= ?", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->whereRaw("st_distance_sphere(`$geometryColumn`, {$expression}) <= ?", [
             $geometry->toWkt(),
             $geometry->getSrid(),
             $distance,
@@ -192,7 +197,8 @@ trait SpatialTrait
 
         $query = $this->scopeDistanceSphere($query, $geometryColumn, $geometry, $distance);
 
-        $query->whereRaw("st_distance_sphere($geometryColumn, ST_GeomFromText(?, ?, 'axis-order=long-lat')) != 0", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->whereRaw("st_distance_sphere($geometryColumn, {$expression}) != 0", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -209,7 +215,8 @@ trait SpatialTrait
         if (!$columns) {
             $query->select('*');
         }
-        $query->selectRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) as distance", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->selectRaw("st_distance_sphere(`$geometryColumn`, {$expression}) as distance", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -223,7 +230,8 @@ trait SpatialTrait
             throw new UnknownSpatialRelationFunction($relationship);
         }
 
-        $query->whereRaw("st_{$relationship}(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat'))", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->whereRaw("st_{$relationship}(`$geometryColumn`, {$expression})", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -279,7 +287,8 @@ trait SpatialTrait
             throw new UnknownSpatialFunctionException($orderFunction);
         }
 
-        $query->orderByRaw("st_{$orderFunction}(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) {$direction}", [
+        $expression = ExpressionGenerator::getExpression($query->getConnection());
+        $query->orderByRaw("st_{$orderFunction}(`$geometryColumn`, {$expression}) {$direction}", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -295,5 +304,8 @@ trait SpatialTrait
     public function scopeOrderByDistanceSphere($query, $geometryColumn, $geometry, $direction = 'asc')
     {
         return $this->scopeOrderBySpatial($query, $geometryColumn, $geometry, 'distance_sphere', $direction);
+    }
+    protected function getST_GeomFromTextExpressionFromQuery($query){
+
     }
 }

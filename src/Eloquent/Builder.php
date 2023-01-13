@@ -21,6 +21,6 @@ class Builder extends EloquentBuilder
 
     protected function asWKT(GeometryInterface $geometry)
     {
-        return SpatialExpression::makeFromConnection($this->getConnection(), $geometry);
+        return new SpatialExpression($geometry, $this->getConnection());
     }
 }

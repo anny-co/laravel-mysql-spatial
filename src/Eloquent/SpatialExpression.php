@@ -2,27 +2,25 @@
 
 namespace Grimzy\LaravelMysqlSpatial\Eloquent;
 
+use Grimzy\LaravelMysqlSpatial\ExpressionGenerator;
 use Grimzy\LaravelMysqlSpatial\MysqlConnection;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
 
 class SpatialExpression extends Expression
 {
-    protected bool $isMaria;
+    protected ?ConnectionInterface $connection;
 
-    public function __construct($value, bool $isMaria = false)
+    public function __construct($value, ConnectionInterface $connection = null)
     {
         parent::__construct($value);
-        $this->isMaria = $isMaria;
+        $this->connection = $connection;
     }
 
     public function getValue()
     {
-        if($this->isMaria) {
-            return "ST_GeomFromText(?, ?)";
-        }
-
-        return "ST_GeomFromText(?, ?, 'axis-order=long-lat')";
+        return ExpressionGenerator::getExpression($this->connection);
     }
 
     public function getSpatialValue()
@@ -33,17 +31,5 @@ class SpatialExpression extends Expression
     public function getSrid()
     {
         return $this->value->getSrid();
-    }
-
-    public static function makeFromConnection(\Illuminate\Database\ConnectionInterface $connection, $value)
-    {
-        if(($connection instanceof MysqlConnection
-                || $connection instanceof \Illuminate\Database\MySqlConnection)
-            && $connection->isMaria()) {
-
-            return new self($value, true);
-        }
-
-        return new self($value, false);
     }
 }
