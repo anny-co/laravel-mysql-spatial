@@ -2,6 +2,7 @@
 
 namespace Grimzy\LaravelMysqlSpatial\Eloquent;
 
+use Grimzy\LaravelMysqlSpatial\MysqlConnection;
 use Grimzy\LaravelMysqlSpatial\Types\GeometryInterface;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 
@@ -20,6 +21,6 @@ class Builder extends EloquentBuilder
 
     protected function asWKT(GeometryInterface $geometry)
     {
-        return new SpatialExpression($geometry);
+        return SpatialExpression::makeFromConnection($this->getConnection(), $geometry);
     }
 }
