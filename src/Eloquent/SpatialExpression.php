@@ -10,26 +10,22 @@ use Illuminate\Support\Facades\DB;
 
 class SpatialExpression extends Expression
 {
-    protected ?ConnectionInterface $connection;
+    protected $geomValue;
 
     public function __construct($value, ConnectionInterface $connection = null)
     {
-        parent::__construct($value);
-        $this->connection = $connection;
-    }
-
-    public function getValue()
-    {
-        return ExpressionGenerator::getExpression($this->connection);
+        $this->geomValue = $value;
+        $expression = ExpressionGenerator::getExpression($connection);
+        parent::__construct($expression);
     }
 
     public function getSpatialValue()
     {
-        return $this->value->toWkt();
+        return $this->geomValue->toWkt();
     }
 
     public function getSrid()
     {
-        return $this->value->getSrid();
+        return $this->geomValue->getSrid();
     }
 }
